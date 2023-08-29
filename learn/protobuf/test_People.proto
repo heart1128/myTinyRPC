@@ -1,0 +1,46 @@
+// 1. 指定proto3语法，创建命名空间
+syntax = "proto3";
+package test;
+
+// 2. 定义消息体，驼峰命名
+message People{
+    string name = 1;  // [修饰符][数据类型][变量名] = [唯一编号]每个编号只能使用一次。
+    int32 age = 2;
+    /*
+        protobuf中的基本数据类型----对应的java基础数据类型
+        int32     ----    int
+        int64     ----    long
+        double    ----    double
+        float     ----    float
+        bytes     ----    ByteString
+        bool      ----    boolean
+        此外，还有：
+        uint32    ----    int
+        uint64    ----    long
+        sint32    ----    int
+        sint64    ----    long
+        fixed32   ----    int
+        fixed64   ----    long
+        sfixed32  ----    int
+        sfixed64  ----    long
+     */
+
+     // 定义数组
+     repeated string list = 3;
+
+     // 使用map
+     map<string, string> projects = 23;
+
+     // 以后可能会用到的保留编号或者变量名，之后使用这些保留字会报错
+     reserved 4 , 15, 9 to 11;
+     reserved "foo", "bar";
+
+     // 枚举
+     enum Corpus{
+        // option allow_alias = true; // 允许定义别名
+        UNIVERSAL = 0; // 第一个必须是0，不然编译错误
+     }
+}
+
+
+// 3. 编译 protoc -I=proto文件所在目录 --cpp_out=输出路径 xxx.proto
