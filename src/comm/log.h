@@ -18,6 +18,7 @@
 
 
 #include "src/comm/config.h"
+#include "src/net/mutex.h"
 /*
 class Logger : 处理单个用户的日志string写入buffer(vector)
 class AsyncLogger : 处理整个日志队列的写入文件，每次处理一个用户的日志
@@ -25,6 +26,9 @@ class LoggerEvent : 被Logger调用，实现日志字符的组织，日志等级
 */
 
 namespace tinyrpc{
+
+// 其他函数要用日志，就要有gRpcConfig
+extern tinyrpc::Config::ptr gRpcConfig;
 
 // 格式化字符串函数，使用可变模版参数
 template<typename... Args>
@@ -203,7 +207,7 @@ private:
     FILE* m_fileHandle {nullptr};
     std::string m_date;
 
-    // Mutex m_mutex;  // 异步锁
+    Mutex m_mutex;  // 异步锁
     pthread_cond_t m_condition; // 条件变量
     bool m_stop {false};
 
@@ -248,6 +252,9 @@ public:
     std::vector<std::string> m_app_buffer; // app日志buffer
 
 private:
+    Mutex m_app_buffer_mutex;
+    Mutex m_buffer_mutex;
+
     bool m_is_init {false};
     AsyncLogger::ptr m_async_rpc_logger;
     AsyncLogger::ptr m_async_app_logger;

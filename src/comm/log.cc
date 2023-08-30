@@ -10,6 +10,8 @@
 
 
 #include "src/comm/log.h"
+#include "src/coroutine/coroutine.h"
+#include "src/comm/run_time.h"
 
 namespace tinyrpc{
 
@@ -196,13 +198,26 @@ std::stringstream& LogEvent::getStringStream()
     
     m_tid = t_thread_id;
 
-    // 协程id暂时没加上
+    // 协程id
+    m_cor_id = Coroutine::getCurrentCoroutine()->getCorId();
 
     m_ss << "[" << m_pid  << "]\t"
         << "[" << m_tid << "]\t"
+        << "[" << m_cor_id << "]\t"
         << "[" << m_fileName << ":" << m_line << "]\t";
 
-    // 协程runtime暂时没加上，加上协程再写
+    // 协程runtime
+    RunTime* runtime = getCurrentRunTime();
+    if(runtime)
+    {
+        std::string msgno = runtime->m_msg_no;
+        if(!msgno.empty())
+            m_ss << "[" << msgno << "]\t";
+        
+        std::string interface_name = runtime->m_interface_name;
+        if(!interface_name.empty())
+            m_ss << "[" << interface_name << "]\t";
+    }
 
     return m_ss;
 }
@@ -292,13 +307,17 @@ void Logger::loopFunc()
 {
     std::vector<std::string> app_tmp;
     // 上app buffer锁
+    Mutex::Lock lock1(m_app_buffer_mutex);
     app_tmp.swap(m_app_buffer);
     // 解锁
+    lock1.unlock();
 
     std::vector<std::string> tmp;
     // 上buffer锁
+    Mutex::Lock lock2(m_buffer_mutex);
     tmp.swap(m_buffer);
     // 解锁
+    lock2.unlock();
 
     // 加入日志任务AsyncLogger类的task
     m_async_rpc_logger->push(tmp);
@@ -310,16 +329,20 @@ void Logger::loopFunc()
 void Logger::pushRpcLog(const std::string& msg)
 {
     // 上锁
+    Mutex::Lock lock(m_buffer_mutex);
     m_buffer.emplace_back(std::move(msg)); // push_back(std::move(msg))一样都是移动拷贝构造T&&
-    // 解锁，使用到协程，还未实现
+    // 解锁
+    lock.unlock();
 }
 
 // 写入APP类型日志
 void Logger::pushAppLog(const std::string& msg)
 {
     // 上锁 防止多个协程程同时写入，就乱了
+    Mutex::Lock lock(m_app_buffer_mutex);
     m_app_buffer.emplace_back(std::move(msg));
     // 解锁
+    lock.unlock();
 }
 
 // 刷新
@@ -396,12 +419,13 @@ void* AsyncLogger::exeute(void* arg)
     // 循环执行
     while(true)
     {
-            // 每次拿任务信息是原子的，需要上锁，还未实现
+            // 每次拿任务信息是原子的，需要上锁，
+        Mutex::Lock lock(ptr->m_mutex);
 
         // 任务队列是空的，并且还没有暂停写日志，就等待条件变量wait阻塞，并且需要上锁
         while(ptr->m_tasks.empty() && !ptr->m_stop)
         {
-            pthread_cond_wait(&(ptr->m_condition), /*上锁*/);
+            pthread_cond_wait(&(ptr->m_condition), ptr->m_mutex.getMutex());
         }
 
         std::vector<std::string> tmp;
@@ -409,7 +433,8 @@ void* AsyncLogger::exeute(void* arg)
         ptr->m_tasks.pop();
         bool is_stop = ptr->m_stop;
         
-            // 解锁，未实现
+            // 解锁
+        lock.unlock();
 
 
         // 获取当前时间和时间戳
@@ -501,9 +526,11 @@ void AsyncLogger::push(std::vector<std::string>& buffer)
 {
     if(!buffer.empty())
     {
-        // 上锁，未实现
+        // 上锁
+        Mutex::Lock lock(m_mutex);
         m_tasks.push(buffer);
         // 解锁
+        lock.unlock();
         // 唤醒等待的条件变量，也就是执行函数里面的等待的条件变量。
         pthread_cond_signal(&m_condition);
     }

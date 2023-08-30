@@ -28,6 +28,19 @@ public:
     LogLevel m_app_log_level {LogLevel::DEBUG}; // app用户的日志等级
     int m_log_sync_inteval {500};  // log同步的间隔,ms
 
+public:
+    // coroutine params
+    int m_cor_stack_size {0};           // 协程栈大小
+    int m_cor_pool_size {0};            // 协程池大小
+
+    int m_msg_req_len {0};
+
+    int m_max_connect_timeout {0};
+    int m_iothread_num {0};
+
+    int m_timewheel_bucket_num {0};
+    int m_timewheel_inteval {0};
+
 private:
     std::string m_file_path;
 
