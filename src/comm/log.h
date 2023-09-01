@@ -129,18 +129,6 @@ std::string logTypeToString(LogType type);
 bool OpenLog();
 
 
-// *********************日志打印辅助类*********************
-class LogTmp{
-public:
-    explicit LogTmp(LogEvent::ptr event);
-    ~LogTmp();
-
-    std::stringstream& getStringStream();
-
-private:
-    LogEvent::ptr m_event;
-};
-
 
 // *********************日志事件类*********************
 class LogEvent{
@@ -171,10 +159,19 @@ private:
     std::string m_msgNo; // 消息体
 
     std::stringstream m_ss; // 存储整个日志的流
-    std::stringstream m_ss;
 };
 
+// *********************日志打印辅助类*********************
+class LogTmp{
+public:
+    explicit LogTmp(LogEvent::ptr event);
+    ~LogTmp();
 
+    std::stringstream& getStringStream();
+
+private:
+    LogEvent::ptr m_event;
+};
 
 // *********************异步日志类*********************
 class AsyncLogger{

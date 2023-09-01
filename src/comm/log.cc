@@ -10,10 +10,14 @@
 
 
 #include "src/comm/log.h"
+#include "src/comm/config.h"
 #include "src/coroutine/coroutine.h"
 #include "src/comm/run_time.h"
 
 namespace tinyrpc{
+
+tinyrpc::Logger::ptr gRpcLogger;
+tinyrpc::Config::ptr gRpcConfig;
 
 // coredump处理函数
 void CoredumpHandler(int signal_no)
@@ -27,11 +31,6 @@ void CoredumpHandler(int signal_no)
     pthread_join(gRpcLogger->getAsyncLogger()->m_thread, NULL);
     pthread_join(gRpcLogger->getAsyncAppLogger()->m_thread, NULL);
 }
-
-
-extern tinyrpc::Logger::ptr gRpcLogger;
-extern tinyrpc::Config::ptr gRpcConfig;
-
 // thread_local c++11关键字
 // 这个变量值在线程周期内存活,保证线程有自己的变量
 static thread_local pid_t t_thread_id = 0;

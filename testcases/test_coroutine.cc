@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "src/coroutine/coroutine_pool.h"
+#include "src/comm/config.h"
 #include "src/comm/log.h"
 #include "src/coroutine/coroutine.h"
 #include "src/net/mutex.h"
@@ -74,9 +75,10 @@ int main(int argc, char* argv[])
 {
     std::cout << "main begin" << std::endl;
     int stack_size = 128 * 1024;
+    // 设置第一个协程栈
     char* sp = reinterpret_cast<char*>(malloc(stack_size));
     cor = std::make_shared<tinyrpc::Coroutine>(stack_size, sp, fun1);
-
+    // 设置第二个协程栈
     char* sp2 = reinterpret_cast<char*>(malloc(stack_size));
     cor2 = std::make_shared<tinyrpc::Coroutine>(stack_size, sp2, fun2);
 
@@ -84,7 +86,7 @@ int main(int argc, char* argv[])
     pthread_t thread2;
     pthread_create(&thread2, NULL, &thread2_func, NULL);
 
-    thread1_func(NULL);
+    thread1_func(NULL); // 先对func1启动一个协程，在协程1里面slepp（5），协程2拿到cpu启动协程2，sleep（2）之后返回，直到协程1 sleep结束返回
 
     pthread_join(thread2, NULL);
 

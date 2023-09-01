@@ -2,9 +2,9 @@
 #include <cstring>
 
 #include "src/coroutine/coroutine.h"
-#include "src/comm/log.h"
 #include "src/comm/run_time.h"
 #include "src/comm/config.h"
+#include "src/comm/log.h"
 
 namespace tinyrpc{
 

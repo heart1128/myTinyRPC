@@ -1,0 +1,12 @@
+bin/*
+build/*
+bin/*
+lib/*
+
+*.swp
+*.swo
+*.log
+*.o
+*.a
+*.pb.h
+*.pb.cc
