@@ -35,7 +35,7 @@ public:
 
     int m_msg_req_len {0};
 
-    int m_max_connect_timeout {0};
+    int m_max_connect_timeout {0};  // 最大的连接超时时间，用于注册连接超时的定时器间隔，
     int m_iothread_num {0};
 
     int m_timewheel_bucket_num {0};
