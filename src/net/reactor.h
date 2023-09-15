@@ -18,7 +18,7 @@
 
 分为主从reactor
     主reactor ： 负责accept的fd使用epoll，之后注册到从reactor
-    从reactor : 负责read write的fd, 使用协程调用，整个过程是同步的写法，异步的调用
+    从reactor : 负责read write的fd, 使用协程调用，整个过程是同步的写法，异步的调用(也就是接受fd，注册epoll，协程挂起，等待唤醒，直接同步写法)
                 通过read唤醒协程，注册可读。之后挂起协程继续监听，等待可读事件再唤醒协程进行read
 
 */
@@ -80,7 +80,7 @@ private:
     void delEventInLoopThread(int fd);
 
 private:
-    int m_epfd {-1}; // 
+    int m_epfd {-1}; // epoll的返回fd
     int m_wake_fd {-1};   // 本次事件到达唤醒的fd
     int m_timer_fd {-1};  // 计时器到时的fd
     bool m_stop_flag {false};
@@ -93,9 +93,13 @@ private:
     std::vector<int> m_fds;     // 已经
     std::atomic<int> m_fd_size;  // fd个数
 
+      // fds that wait for operate
+  // 1 -- to add to loop
+  // 2 -- to del from loop
     // epoll_event结构体，包含epoll事件和epoll数据
-    std::map<int, epoll_event> m_pending_add_fds; // 加入fd到epoll loop
-    std::vector<int> m_pending_del_fds;            // 删除fd ，从epoll loop ，记录的是加入的编号
+    std::map<int, epoll_event> m_pending_add_fds; // 不是对应线程，但是后续要加入fd到epoll loop
+    std::vector<int> m_pending_del_fds;            // 不是对应线程的fd，后续要的删除fd ，从epoll loop ，记录的是加入的编号
+    std::vector<std::function<void()>> m_pending_tasks;
 
     Timer* m_timer {nullptr}; // 事件定时器
 
