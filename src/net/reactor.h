@@ -90,7 +90,7 @@ private:
 
     Mutex m_mutex;
 
-    std::vector<int> m_fds;     // 已经
+    std::vector<int> m_fds;     // 已经加入的fd
     std::atomic<int> m_fd_size;  // fd个数
 
       // fds that wait for operate
@@ -124,7 +124,7 @@ public:
 
 private:
     std::queue<FdEvent*> m_task;
-    Mutex* m_mutex;
+    Mutex m_mutex;
 };
 
 

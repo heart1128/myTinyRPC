@@ -34,7 +34,7 @@ Reactor::Reactor()
         Exit(0);  // log.cc的退出，将异步日志线程执行join开始写入日志
     }
 
-    m_tid = gettid(); // 系统调用拿取当前线程id
+    m_tid = gettid(); // 系统调用拿取当前线程id 
 
     DebugLog << "thread[" << m_tid << "] succ create a reactor object";
     t_reactor_ptr = this;  // 当前reactor分给当前线程
@@ -148,6 +148,8 @@ void Reactor::addEventInLoopThread(int fd, epoll_event event)
     DebugLog << "epoll_ctl add succ, fd[" << fd << "]"; 
 }
 // 删除
+// 1. 在epoll中删除
+// 2. 在记录fd的m_fds中删除，每个线程都有一个m_fds
 void Reactor::delEventInLoopThread(int fd)
 {
     assert(isLoopThread());
@@ -171,10 +173,10 @@ void Reactor::delEventInLoopThread(int fd)
     DebugLog << "del succ, fd[" << fd << "]";
 }
 
-// 设置wakeup fd
+// 设置wakeup fd，作用是唤醒reactor
 void Reactor::wakeup()
 {
-    // 如果不是需要循环的
+    // 没有在循环 
     if(!m_is_looping)
         return;
     
@@ -271,21 +273,21 @@ void Reactor::loop()
     m_is_looping = true;
     m_stop_flag = false;
 
-    Coroutine* first_coroutine = nullptr;
+    Coroutine* first_coroutine = nullptr; // epoll_wait的第一个协程
 
     while(!m_stop_flag)
     {
         const int MAX_EVENTS = 10;
         epoll_event re_events[MAX_EVENTS + 1];
 
-        // 协程有效唤醒
+        // 第一个协程有效唤醒
         if(first_coroutine)
         {
             tinyrpc::Coroutine::Resume(first_coroutine);
             first_coroutine = NULL;
         }
 
-        // 主协程不需要被唤醒，io协程才需要
+        // 主协程不需要被唤醒，io协程才需要，全部唤醒
         if(m_reactor_type != MainReactor)
         {
             FdEvent* ptr = NULL;
@@ -303,17 +305,209 @@ void Reactor::loop()
         }
 
 
+        // 执行所有待定队列中的任务
+        Mutex::Lock lock(m_mutex);
+
+        std::vector<std::function<void()>> tmp_tasks;
+        tmp_tasks.swap(m_pending_tasks);
+        lock.unlock();
+            // 执行回调函数
+        for(auto task : tmp_tasks)
+        {
+            if(task)
+                task();
+        }
+
+
+        // 进入epoll_wait
+        int rt = epoll_wait(m_epfd, re_events, MAX_EVENTS, t_max_epoll_timeout);
+
+        if(rt < 0)
+        {
+            ErrorLog << "epoll_wait error, skip, errno=" << strerror(errno);
+        }
+        else
+        {
+            // 1. 反复检查返回的事件个数，放在re_events
+            for(int i = 0; i < rt; ++i)
+            {
+                epoll_event one_event = re_events[i];
+                // 1. 1读事件, 唤醒事件，这是在唤醒reactor
+                if(one_event.data.fd == m_wake_fd && (one_event.events & READ))
+                {
+                    char buf[8];
+                    while(1)  // 使用系统read，读出一个1，是wakeup函数写入的，目的就是为了唤醒epoll_wait的reactor。如果需要马上处理事件，就直接唤醒
+                    {
+                        if((g_sys_read_fun(m_wake_fd, buf, 8)) == -1 && errno == EAGAIN)
+                            break;
+                        // 下一步就开始处理事件了,所以wakeup函数只是需要写入一个数据到wake_fd就能唤醒epoll
+                    }
+                }
+                else
+                {
+                    tinyrpc::FdEvent* ptr = (tinyrpc::FdEvent*)one_event.data.ptr;
+                    if(ptr != nullptr)
+                    {
+                        int fd = ptr->getFd();
+
+                        // 不是读写事件出现了错误
+                        if((!(one_event.events & EPOLLIN)) && (!(one_event.events & EPOLLOUT)))
+                        {
+                            ErrorLog << "socket [" << fd << "] occur other unknow event:[" << one_event.events << "], need unregister this socket";
+                            delEventInLoopThread(fd); // 删除这个无效的fd
+                        }
+                        else
+                        {
+                            // 如果fd注册了协程，把携程加入到coroutine_tasks中，说明是之前的事件，现在唤醒了
+                            if(ptr->getCoroutine())
+                            {
+                                // 这是epoll_wait返回的第一个fd的协程，直接设置跳过到最前面唤醒协程，因为所有的协程任务队列都应该加mutex?
+                                if(!first_coroutine)
+                                {
+                                    first_coroutine = ptr->getCoroutine();
+                                    continue;
+                                }
+                                // 子协程，负责io,不加入循环中，而是加入到协程任务队列中。这个reactor loop是主协程用于处理连接的
+                                // 加入到协程任务队列中，在最前面会不断唤醒所有协程，在协程中执行子reactor进行io
+                                if(m_reactor_type == SubReactor)
+                                {
+                                    delEventInLoopThread(fd);
+                                    ptr->setReactor(NULL);
+                                    CoroutineTaskQueue::getCoroutineTaskQueue()->push(ptr);
+                                }
+                                else
+                                {
+                                    // 主reactor
+                                    tinyrpc::Coroutine::Resume(ptr->getCoroutine());
+                                    if(first_coroutine)
+                                        first_coroutine = NULL;
+                                }
+                            }
+                            else   // 如果没有注册协程，是新fd，就注册协程，设置回调函数，注册epoll事件           
+                            {
+                                std::function<void()> read_cb;
+                                std::function<void()> write_cb;
+                                read_cb = ptr->getCallBack(READ);
+                                write_cb = ptr->getCallBack(WRITE);
+
+                                // 如果是定时器事件，就执行，不用写入，执行定时器会唤醒其他任务
+                                // 应该是执行onTimer()
+                                if(fd == m_timer_fd)
+                                {
+                                    read_cb();
+                                    continue;
+                                }
+
+                                // 判断读写事件
+                                if(one_event.events & EPOLLIN)
+                                {
+                                    Mutex::Lock lock(m_mutex); // 出了定义域自动解锁
+                                    m_pending_tasks.emplace_back(read_cb);
+                                }
+                                if(one_event.events & EPOLLOUT)
+                                {
+                                    Mutex::Lock lock(m_mutex);
+                                    m_pending_tasks.emplace_back(write_cb);
+                                }
+                            }
+                        }
+                    }
+                }
+            }// end for
+
+            // 添加或者删除不是本线程的待定事件
+            std::map<int, epoll_event> tmp_add;
+            std::vector<int> tmp_del;
+
+            {
+                Mutex::Lock lock(m_mutex);
+                tmp_add.swap(m_pending_add_fds);
+                m_pending_add_fds.clear();  // 其实交换之后就是空的
+
+                tmp_del.swap(m_pending_del_fds);
+                m_pending_del_fds.clear();
+            }
+
+            // 执行操作
+            for(auto i = tmp_add.begin(); i != tmp_add.end(); ++i)
+            {
+                addEventInLoopThread((*i).first, (*i).second);
+            }
+            for(auto i = tmp_del.begin(); i != tmp_del.end(); ++i)
+            {
+                delEventInLoopThread((*i));
+            }
+
+        }// end rt else
 
     } // end while(!m_stop_flag)
+
+    DebugLog << "reactor loop end";
+    m_is_looping = false;
 }
 
+// 暂停
+void Reactor::stop()
+{
+    if(!m_stop_flag && m_is_looping)
+    {
+        m_stop_flag = true;
+        wakeup();
+    }
+}
+// 添加任务在reactor中
+void Reactor::addTask(std::function<void()> task, bool is_wakeup /*=true*/) 
+{
+    {
+        Mutex::Lock lock(m_mutex);
+        m_pending_tasks.emplace_back(task);
+    }
+    if(is_wakeup)
+        wakeup();  // 唤醒reactor进行处理事件
+}
+// 添加多个任务
+void Reactor::addTask(std::vector<std::function<void()>> task, bool is_wakeup /* =true*/) 
+{
+    if(task.size() == 0)
+        return;
+    
+    {
+        Mutex::Lock lock(m_mutex);
+        m_pending_tasks.insert(m_pending_tasks.end(), task.begin(), task.end());
+    }
+    if(is_wakeup)
+        wakeup();
+}
 
+// 为reacor添加协程，也就是唤醒几个协程用
+void Reactor::addCoroutine(tinyrpc::Coroutine::ptr cor, bool is_wakeup /*=true*/)
+{
+    auto func = [cor](){
+        tinyrpc::Coroutine::Resume(cor.get()); // 唤醒cor的原始指针
+    };
+    addTask(func, is_wakeup);
+}
+
+Timer* Reactor::getTimer()
+{
+    if(!m_timer)
+    {
+        m_timer = new Timer(this);
+        m_timer_fd = m_timer->getFd(); // 定时器fd
+    }
+    return m_timer;
+}
+
+pid_t Reactor::getTid() 
+{
+  return m_tid;
+}
 
 /*
 ------------------------CoroutineTaskQueue----------------------
 */
 
-CoroutineTaskQueue* CoroutineTaskQueue::getCoroutineTaskQueue()
+CoroutineTaskQueue* CoroutineTaskQueue::getCoroutineTaskQueue() 
 {
     if(t_couroutine_task_queue)
         return t_couroutine_task_queue;
@@ -322,5 +516,28 @@ CoroutineTaskQueue* CoroutineTaskQueue::getCoroutineTaskQueue()
     return t_couroutine_task_queue;
 }
 
+// fd事件放入协程队列
+void CoroutineTaskQueue::push(FdEvent* cor)
+{
+    Mutex::Lock lock(m_mutex);
+    m_task.push(cor);
+    lock.unlock();
+}
+
+// 拿出一个fd事件
+FdEvent* CoroutineTaskQueue::pop()
+{
+    FdEvent* re = nullptr;
+
+    Mutex::Lock lock(m_mutex);
+    
+    if(m_task.size() >= 1)
+    {
+        re = m_task.front();
+        m_task.pop();
+    }
+
+    lock.unlock();
+}
     
 } // namespace tinyrpc

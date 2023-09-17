@@ -106,6 +106,8 @@ int accept_hook(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 	return g_sys_accept_fun(sockfd, addr, addrlen);
 }
 
+// hook作用就是在read之前使用toEpoll注册到reactor上，然后等待epoll可读事件唤醒之后清除协程，调用系统read，这样就能在有读的时候才read，不然要等待数据read
+// 使用协程直接同步写代码，就不用使用回调函数等待定时器唤醒read
 ssize_t read_hook(int fd, void* buf, size_t count)
 {
     // 如果不使用read_hook，系统read会等待网络fd，直到有消息可读。使用了就能使得当没有消息的时候挂起协程，有可读事件的时候唤醒进行系统read
