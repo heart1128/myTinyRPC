@@ -89,7 +89,7 @@ int accept_hook(int sockfd, struct sockaddr* addr, socklen_t* addrlen)
 
     fd_event->setNonBlock();
 
-    // accept成功返回客户端的fd
+    // accept成功返回客户端的fd, 表示现在有就直接返回，没有再进行挂起等待
     int n = g_sys_accept_fun(sockfd, addr, addrlen);
     if(n > 0)
         return n;
