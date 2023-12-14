@@ -182,7 +182,7 @@ void Reactor::wakeup()
     
     uint64_t tmp = 1;
     uint64_t* p = &tmp;
-    // 使用read就能写入fd
+    // 使用write就能写入fd
     if(g_sys_write_fun(m_wake_fd, p, 8) != 8)
     {
         ErrorLog << "write wakeupfd[" << m_wake_fd << "] error";
@@ -249,7 +249,7 @@ void Reactor::delEvent(int fd, bool is_wakeup /*true*/)
         return;
     }
 
-    {// 为什么不解锁？
+    {// 为什么不解锁？因为出了定义域就触发析构函数，自动解锁
         Mutex::Lock lock(m_mutex);
         m_pending_del_fds.emplace_back(fd);
     }
@@ -287,7 +287,7 @@ void Reactor::loop()
             first_coroutine = NULL;
         }
 
-        // 主协程不需要被唤醒，io协程才需要，全部唤醒
+        // 主协程不需要被唤醒，io协程才需要，全部唤醒，就是专门为子reacotr设置的，唤醒所有读写事件的协程进行处理。
         if(m_reactor_type != MainReactor)
         {
             FdEvent* ptr = NULL;
@@ -345,12 +345,14 @@ void Reactor::loop()
                 }
                 else
                 {
+                    // 加入到event.data中的是FDEvent指针。
                     tinyrpc::FdEvent* ptr = (tinyrpc::FdEvent*)one_event.data.ptr;
                     if(ptr != nullptr)
                     {
                         int fd = ptr->getFd();
 
                         // 不是读写事件出现了错误
+                        // 1. 判断是否是读写以外的事件，如果是就添加报错日志，删除这个无效fd，但是不影响正常运行
                         if((!(one_event.events & EPOLLIN)) && (!(one_event.events & EPOLLOUT)))
                         {
                             ErrorLog << "socket [" << fd << "] occur other unknow event:[" << one_event.events << "], need unregister this socket";
@@ -358,7 +360,7 @@ void Reactor::loop()
                         }
                         else
                         {
-                            // 如果fd注册了协程，把携程加入到coroutine_tasks中，说明是之前的事件，现在唤醒了
+                            // 如果fd注册了协程，说明是之前的事件，现在唤醒了
                             if(ptr->getCoroutine())
                             {
                                 // 这是epoll_wait返回的第一个fd的协程，直接设置跳过到最前面唤醒协程，因为所有的协程任务队列都应该加mutex?
@@ -383,7 +385,7 @@ void Reactor::loop()
                                         first_coroutine = NULL;
                                 }
                             }
-                            else   // 如果没有注册协程，是新fd，就注册协程，设置回调函数，注册epoll事件           
+                            else   // 如果没有注册协程，是新fd，设置回调函数，注册epoll事件       协程设置是在Enentfd中的    
                             {
                                 std::function<void()> read_cb;
                                 std::function<void()> write_cb;
@@ -415,7 +417,7 @@ void Reactor::loop()
                 }
             }// end for
 
-            // 添加或者删除不是本线程的待定事件
+            // 添加或者删除不是本线程（是第一次加入本线程，但是没有注册到recator的事件）的待定事件
             std::map<int, epoll_event> tmp_add;
             std::vector<int> tmp_del;
 
@@ -427,7 +429,8 @@ void Reactor::loop()
                 tmp_del.swap(m_pending_del_fds);
                 m_pending_del_fds.clear();
             }
-
+            // 也就是add里面是本线程缺少的，现在加入
+            //del是多出来的，删除
             // 执行操作
             for(auto i = tmp_add.begin(); i != tmp_add.end(); ++i)
             {
@@ -479,11 +482,11 @@ void Reactor::addTask(std::vector<std::function<void()>> task, bool is_wakeup /*
         wakeup();
 }
 
-// 为reacor添加协程，也就是唤醒几个协程用
+// 为reactor添加协程，也就是唤醒几个协程用
 void Reactor::addCoroutine(tinyrpc::Coroutine::ptr cor, bool is_wakeup /*=true*/)
 {
     auto func = [cor](){
-        tinyrpc::Coroutine::Resume(cor.get()); // 唤醒cor的原始指针
+        tinyrpc::Coroutine::Resume(cor.get()); // 唤醒cor的原始指针，这个匿名函数会在loop中的task()中执行，唤醒协程
     };
     addTask(func, is_wakeup);
 }

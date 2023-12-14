@@ -7,7 +7,7 @@
 #include "src/net/tcp/io_thread.h"
 //#include "src/net/tcp/tcp_connection.h"
 #include "src/net/tcp/tcp_server.h"
-//#include "src/net/tcp/tcp_connection_time_wheel.h"
+#include "src/net/tcp/tcp_connection_time_wheel.h"
 #include "src/coroutine/coroutine.h"
 #include "src/coroutine/coroutine_pool.h"
 #include "src/comm/config.h"
@@ -90,11 +90,11 @@ int IOThread::getThreadIndex()
 //设置参数，等待start信号量执行reactor->loop，信号量在iothread_pool的start中Post
 void* IOThread::main(void* arg)
 {
-    t_reactor_ptr = new Reactor();
+    t_reactor_ptr = new Reactor();  // 这是一个线程局部变量，一个线程只能有一个reactor
     assert(t_reactor_ptr != NULL);
 
     IOThread* thread = static_cast<IOThread*>(arg); //传入的是IOThrad this
-    t_cur_io_thread = thread;
+    t_cur_io_thread = thread; // thread_local
 
     thread->m_reactor = t_reactor_ptr;
     thread->m_reactor->setReactorType(SubReactor);  // 子reactor处理io
@@ -105,7 +105,7 @@ void* IOThread::main(void* arg)
     DebugLog << "finish iothread init, now post semaphore";
     sem_post(&thread->m_init_semaphore);  // 初始化完成
 
-    sem_wait(&thread->m_start_semaphore);  // 等待pool的start唤醒信号量
+    sem_wait(&thread->m_start_semaphore);  // 等待pool的start唤醒信号量 
 
     sem_destroy(&thread->m_start_semaphore);
 

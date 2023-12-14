@@ -418,7 +418,7 @@ void* AsyncLogger::exeute(void* arg)
     // 循环执行
     while(true)
     {
-            // 每次拿任务信息是原子的，需要上锁，
+        // 每次拿任务信息是原子的，需要上锁，
         Mutex::Lock lock(ptr->m_mutex);
 
         // 任务队列是空的，并且还没有暂停写日志，就等待条件变量wait阻塞，并且需要上锁
@@ -432,7 +432,7 @@ void* AsyncLogger::exeute(void* arg)
         ptr->m_tasks.pop();
         bool is_stop = ptr->m_stop;
         
-            // 解锁
+        // 解锁
         lock.unlock();
 
 

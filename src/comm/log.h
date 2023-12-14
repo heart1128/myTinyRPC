@@ -141,7 +141,7 @@ public:
     std::string toString();
     // 日志都放在stringstream内，最后进行拿出来打印
     std::stringstream& getStringStream();
-
+    // LogTemp析构的时候被调用加入到Logger中
     void log();
     
 
@@ -166,7 +166,8 @@ class LogTmp{
 public:
     explicit LogTmp(LogEvent::ptr event);
     ~LogTmp();
-
+    
+    // 调用LogEvent的getStringStream
     std::stringstream& getStringStream();
 
 private:
@@ -185,13 +186,13 @@ public:
     void push(std::vector<std::string>& buffer);
     // 刷新buffer
     void flush();
-    // 开始异步执行
+    // 开始异步执行，构造创建了一个线程没有join执行，当最后调用最后面的Exit()之后，join这个线程，就异步的将buffer中的内容写入文本
     static void* exeute(void*);
 
     void stop();
 
 public:
-    // 每个用户都使用一个vector每个str日志
+    // 每个用户都使用一个vector保存每个用户的str日志
     std::queue<std::vector<std::string>> m_tasks;  // 异步日志队列
 
 private:
@@ -227,8 +228,10 @@ public:
 
     void init(const char* file_name, const char* file_path, int max_size, int sync_inteval);
     // 加入不同的日志类型。
+    // 在LogTemp析构的时候调用LogEvent的log，将ss流中的字符串Push到buffer中
     void pushRpcLog(const std::string& log_msg);
     void pushAppLog(const std::string& log_msg);
+    // 这个函数由一个定时器使用，定时把buffer的内容加入到AsynLogger中
     void loopFunc();
 
     void flush();

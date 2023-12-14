@@ -26,7 +26,6 @@ int64_t getNowMs()
 }
 
 
-
 Timer::Timer(tinyrpc::Reactor* reactor)
 : FdEvent(reactor)
 {

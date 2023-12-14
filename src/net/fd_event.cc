@@ -146,7 +146,6 @@ void FdEvent::setNonBlock()
         1. 拿出old_flag -> int old_flag = fcntl(fd, F_GETFL, 0);
         2. 设置O_NONBLOCK -> fcntl(fd, F_SETFL, old_flag | O_NONBLOCK);
         3. 返回旧的falg备用  -> return old_flag;
-
     */
     if(m_fd == -1)
     {
