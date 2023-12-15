@@ -9,7 +9,11 @@
 #include "src/coroutine/coroutine_hook.h"
 #include "src/coroutine/coroutine_pool.h"
 
+#include "src/net/tinypb/tinypb_rpc_dispatcher.h"
+#include "src/net/tinypb/tinypb_codec.h"
+
 #include "src/comm/config.h"
+#include "tcp_server.h"
 
 
 namespace tinyrpc {
@@ -136,14 +140,18 @@ TcpServer::TcpServer(NetAddress::ptr addr, ProtocalType type /*= TinyPb_Protocal
     m_io_pool = std::make_shared<IOThreadPool>(gRpcConfig->m_iothread_num);
 
     // RPC工具，暂时没实现
-    // if (type == Http_Protocal) {
-	// 	m_dispatcher = std::make_shared<HttpDispacther>();
-	// 	m_codec = std::make_shared<HttpCodeC>();
-	// 	m_protocal_type = Http_Protocal;
-	// } else {
-	// 	m_dispatcher = std::make_shared<TinyPbRpcDispacther>();
-	// 	m_codec = std::make_shared<TinyPbCodeC>();
-	// 	m_protocal_type = TinyPb_Protocal;
+    if (type == Http_Protocal) 
+    {
+		// m_dispatcher = std::make_shared<HttpDispacther>();
+		// m_codec = std::make_shared<HttpCodeC>();
+		// m_protocal_type = Http_Protocal;
+	} 
+    else
+    {
+		m_dispatcher = std::make_shared<TinyPbRpcDispacther>();
+		m_codec = std::make_shared<TinyPbCodeC>();
+		m_protocal_type = TinyPb_Protocal;
+    }
 
     // 设置一个主Reactor, 子reactor都是new的，主是单例模式
     m_main_reactor = tinyrpc::Reactor::getReactor();
@@ -179,6 +187,11 @@ TcpServer::~TcpServer()
     // 归还accept协程
     getCoroutinePool()->returnCoroutine(m_accept_cor);
     DebugLog << "~TcpServer";
+}
+
+AbstractCodeC::ptr TcpServer::getCodec()
+{
+    return m_codec;
 }
 
 // 处理accept事件，通过上面的m_accept_cor唤醒执行

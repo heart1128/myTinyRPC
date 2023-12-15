@@ -8,9 +8,11 @@
 #include "src/net/timer.h"
 #include "src/net/net_address.h"
 #include "src/net/abstract_codec.h"
+#include "src/net/abstract_dispatcher.h"
 #include "src/net/tcp/io_thread.h"
 #include "src/net/tcp/tcp_connection_time_wheel.h"
 #include "src/net/timer.h"
+
 
 namespace tinyrpc{
 
@@ -70,6 +72,9 @@ public:
 
     // bool registerHttpServlet(const std::string& url_path, HttpServlet::ptr servlet);
 
+public:
+    AbstractCodeC::ptr getCodec();
+
 private:
     void mainAcceptCorFunc();
 
@@ -91,6 +96,12 @@ private:
     IOThreadPool::ptr m_io_pool;  // 线程池，一个线程对应一个连接，一个线程对应多个协程
 
     TimerEvent::ptr m_clear_clent_timer_event {nullptr}; // 一个客户端不能长时间占用连接，定时处理
+
+    AbstractCodeC::ptr m_codec; // tinyPB
+
+    AbstractDispatcher::ptr m_dispatcher; // 事件分发器
+
+    ProtocalType m_protocal_type {TinyPb_Protocal}; // 实现了两种协议，http和tinypb
 
 };
 

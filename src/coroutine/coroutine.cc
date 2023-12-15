@@ -5,6 +5,7 @@
 #include "src/comm/run_time.h"
 #include "src/comm/config.h"
 #include "src/comm/log.h"
+#include "coroutine.h"
 
 namespace tinyrpc{
 
@@ -32,7 +33,10 @@ RunTime* getCurrentRunTime()
     return t_cur_run_time;
 }
 
-
+void setCurrentRunTime(RunTime *v)
+{
+    t_cur_run_time = v;
+}
 // 主协程切换到协程后，调用回调函数，再切换到回调函数栈中
 void CoFunction(Coroutine* co)
 {

@@ -25,7 +25,8 @@ tinyrpc::TcpConnection::TcpConnection(tinyrpc::TcpServer *tcp_svr, tinyrpc::IOTh
 
     m_tcp_svr = tcp_svr;
 
-    // rpc内容
+    // rpc内容, m_codec进行编解码
+    m_codec = m_tcp_svr->getCodec();
 
     // 2.使用fd创建一个Fd事件
     m_fd_event = FdEventContainer::getFdContainer()->getFdEvent(fd);
@@ -327,6 +328,11 @@ TcpBuffer* TcpConnection::getInBuffer()
 TcpBuffer* TcpConnection::getOutBuffer() 
 {
   return m_write_buffer.get();
+}
+
+AbstractCodeC::ptr TcpConnection::getCodec() const
+{
+    return m_codec;
 }
 
 TcpConnectionState TcpConnection::getState()

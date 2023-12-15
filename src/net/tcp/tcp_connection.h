@@ -78,7 +78,7 @@ public:
     TcpBuffer* getOutBuffer();
 
     //rpc相关
-    // AbstractCodeC::ptr getCodec() const;
+    AbstractCodeC::ptr getCodec() const;
     // bool getResPackageData(const std::string& msg_req, TinyPbStruct::pb_ptr& pb_struct);
 
     // 注册tcp连接到时间轮，处理无效连接
@@ -124,7 +124,7 @@ private:
 
     Coroutine::ptr m_loop_cor;
 
-    // AbstractCodeC::ptr m_codec;
+    AbstractCodeC::ptr m_codec;
 
     FdEvent::ptr m_fd_event;
 
