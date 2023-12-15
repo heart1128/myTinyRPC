@@ -1,4 +1,4 @@
-// 编码过程就是将tinyPBStruct以字节流形式写入buf，注意数字在本地和网络流需要大小端转换
+// 编码过程就是将TinyPbStruct以字节流形式写入buf，注意数字在本地和网络流需要大小端转换
 // 解码过程就是相反，同样需要转换
 #include <vector>
 #include <algorithm>
@@ -19,12 +19,12 @@ static const char PB_START = 0x02; // 协议包开始标志
 static const char PB_END = 0x03; // 结束标志
 static const int MSG_REQ_LEN = 20; // request和respone的默认长度
 
-tinyrpc::TinyPbCodeC::TinyPbCodeC()
+TinyPbCodeC::TinyPbCodeC()
 {
 
 }
 
-tinyrpc::TinyPbCodeC::~TinyPbCodeC()
+TinyPbCodeC::~TinyPbCodeC()
 {
 
 }
@@ -38,7 +38,7 @@ void TinyPbCodeC::encode(TcpBuffer *buf, AbstractData *data)
     }
 
     // 动态转换为子类，父类到子类的转换才会触发动态检查机制
-    TinyPBStruct* tmp = dynamic_cast<TinyPBStruct*>(data);
+    TinyPbStruct* tmp = dynamic_cast<TinyPbStruct*>(data);
 
     int len = 0;
     const char* re = encodePbData(tmp, len);
@@ -66,8 +66,8 @@ void TinyPbCodeC::encode(TcpBuffer *buf, AbstractData *data)
     }
 }
 
-// 进行PB协议数据的编码，TinyPBStruct -> net bytes
-const char *TinyPbCodeC::encodePbData(TinyPBStruct *data, int &len)
+// 进行PB协议数据的编码，TinyPbStruct -> net bytes
+const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
 {
     // 1. 服务名判断。服务名错误整个服务调用就错误了
     if(data->service_full_name.empty())
@@ -241,7 +241,7 @@ void TinyPbCodeC::decode(TcpBuffer *buf, AbstractData *data)
     DebugLog << "m_read_buffer size=" << buf->getBufferVector().size() << "readIndex=" << buf->readIndex() << "writeIndex=" << buf->writeIndex();
 
     // 创建结构体作为解析标准格式载体
-    TinyPBStruct* pb_struct = dynamic_cast<TinyPBStruct*>(data);
+    TinyPbStruct* pb_struct = dynamic_cast<TinyPbStruct*>(data);
 
     pb_struct->decode_succ = false;// 最后完成再设置回来
     pb_struct->pk_len = pk_len;  // 包大小

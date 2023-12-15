@@ -11,18 +11,18 @@
 
 namespace tinyrpc{
 
-class TinyPBStruct : public AbstractData{
+class TinyPbStruct : public AbstractData{
 public:
-    typedef std::shared_ptr<TinyPBStruct> ptr;
+    typedef std::shared_ptr<TinyPbStruct> pb_ptr;
 
 public:
-    TinyPBStruct() = default;
-    ~TinyPBStruct() =default;
+    TinyPbStruct() = default;
+    ~TinyPbStruct() = default;
 
-    TinyPBStruct(const TinyPBStruct&) = default; // 默认拷贝构造
-    TinyPBStruct& operator=(const TinyPBStruct&) = default; // 默认重载=
-    TinyPBStruct(TinyPBStruct&&) = default; // 默认移动构造
-    TinyPBStruct& operator=(TinyPBStruct&&) = default; // 默认重载移动=
+    TinyPbStruct(const TinyPbStruct&) = default; // 默认拷贝构造
+    TinyPbStruct& operator=(const TinyPbStruct&) = default; // 默认重载=
+    TinyPbStruct(TinyPbStruct&&) = default; // 默认移动构造
+    TinyPbStruct& operator=(TinyPbStruct&&) = default; // 默认重载移动=
 
     // 结构体最小包大小为 1 + 4 + 4 + 4 + 4 + 4 + 4 + 1 = 26 bytes
 

@@ -12,7 +12,7 @@
 #include "src/net/tcp/tcp_buffer.h"
 #include "src/coroutine/coroutine.h"
 //#include "src/net/http/http_request.h"
-//#include "src/net/tinypb/tinypb_codec.h"
+#include "src/net/tinypb/tinypb_codec.h"
 #include "src/net/tcp/io_thread.h"
 #include "src/net/tcp/tcp_connection_time_wheel.h"
 #include "src/net/tcp/abstract_slot.h"
@@ -79,7 +79,7 @@ public:
 
     //rpc相关
     AbstractCodeC::ptr getCodec() const;
-    // bool getResPackageData(const std::string& msg_req, TinyPbStruct::pb_ptr& pb_struct);
+    bool getResPackageData(const std::string& msg_req, TinyPbStruct::pb_ptr& pb_struct);
 
     // 注册tcp连接到时间轮，处理无效连接
     void registerToTimeWheel();
@@ -133,7 +133,7 @@ private:
 
     bool m_is_over_time {false};
 
-    // std::map<std::string, std::shared_ptr<TinyPbStruct>> m_reply_datas; // rpc相关
+    std::map<std::string, std::shared_ptr<TinyPbStruct>> m_reply_datas; // 通过本地rpc事务操作获得的远程函数调用的结果，通过output发送
 
     std::weak_ptr<AbstractSlot<TcpConnection>> m_weak_slot; //一个tcp连接抽象槽，目的是为了实现时间轮，共享指针引用计数
 

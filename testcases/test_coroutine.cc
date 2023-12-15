@@ -3,6 +3,7 @@
 #include <pthread.h>
 
 #include "src/coroutine/coroutine_pool.h"
+#include "src/coroutine/coroutine_hook.h"
 #include "src/comm/config.h"
 #include "src/comm/log.h"
 #include "src/coroutine/coroutine.h"
@@ -73,6 +74,7 @@ void* thread2_func(void*)
 
 int main(int argc, char* argv[]) 
 {
+    tinyrpc::setHook(false);
     std::cout << "main begin" << std::endl;
     int stack_size = 128 * 1024;
     // 设置第一个协程栈

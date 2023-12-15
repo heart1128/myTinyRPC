@@ -24,7 +24,7 @@ public:
     // 再继承定义
     virtual ProtocalType getProtocalType();
     
-    const char* encodePbData(TinyPBStruct* data, int& len);
+    const char* encodePbData(TinyPbStruct* data, int& len);
 
 };
    

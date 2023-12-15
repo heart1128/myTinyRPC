@@ -4,8 +4,8 @@
 #include "src/net/tcp/tcp_connection.h"
 #include "src/net/tcp/tcp_server.h"
 // #include "src/net/tcp/tcp_client.h"
-// #include "src/net/tinypb/tinypb_codec.h"
-// #include "src/net/tinypb/tinypb_data.h"
+#include "src/net/tinypb/tinypb_codec.h"
+#include "src/net/tinypb/tinypb_data.h"
 #include "src/coroutine/coroutine_hook.h"
 #include "src/coroutine/coroutine_pool.h"
 #include "src/net/tcp/tcp_connection_time_wheel.h"
@@ -333,6 +333,20 @@ TcpBuffer* TcpConnection::getOutBuffer()
 AbstractCodeC::ptr TcpConnection::getCodec() const
 {
     return m_codec;
+}
+
+bool TcpConnection::getResPackageData(const std::string &msg_req, TinyPbStruct::pb_ptr &pb_struct)
+{
+    auto it = m_reply_datas.find(msg_req);
+    if(it != m_reply_datas.end())
+    {
+        DebugLog << "return a resdata";
+        pb_struct = it->second;
+        m_reply_datas.erase(it);
+        return true;
+    }
+    DebugLog << msg_req << "|reply data not exist";
+    return false;
 }
 
 TcpConnectionState TcpConnection::getState()

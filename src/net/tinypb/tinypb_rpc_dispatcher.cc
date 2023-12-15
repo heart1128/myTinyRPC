@@ -24,7 +24,7 @@ class TcpBuffer;
 void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
 {
     
-    TinyPBStruct* tmp = dynamic_cast<TinyPBStruct*>(data);
+    TinyPbStruct* tmp = dynamic_cast<TinyPbStruct*>(data);
     if(tmp == nullptr)
     {
         ErrorLog << "dynamic_cast<> error!";
@@ -40,7 +40,7 @@ void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
     std::string service_name;
     std::string method_name;
 
-    TinyPBStruct reply_pk;
+    TinyPbStruct reply_pk;
     reply_pk.service_full_name = tmp->service_full_name;
     reply_pk.msg_req = tmp->msg_req;
         // 如果request是空的，产生随机数填充
