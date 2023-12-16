@@ -72,8 +72,12 @@ public:
 
     // bool registerHttpServlet(const std::string& url_path, HttpServlet::ptr servlet);
 
+    void freshTcpConnection(TcpTimeWheel::TcpConnectionSlot::ptr slot);
+
 public:
     AbstractCodeC::ptr getCodec();
+
+    TcpTimeWheel::ptr getTimeWheel(); 
 
 private:
     void mainAcceptCorFunc();
@@ -96,6 +100,8 @@ private:
     IOThreadPool::ptr m_io_pool;  // 线程池，一个线程对应一个连接，一个线程对应多个协程
 
     TimerEvent::ptr m_clear_clent_timer_event {nullptr}; // 一个客户端不能长时间占用连接，定时处理
+
+    TcpTimeWheel::ptr m_time_wheel; // 处理无线连接时间轮
 
     AbstractCodeC::ptr m_codec; // tinyPB
 

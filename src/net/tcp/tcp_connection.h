@@ -135,7 +135,7 @@ private:
 
     std::map<std::string, std::shared_ptr<TinyPbStruct>> m_reply_datas; // 通过本地rpc事务操作获得的远程函数调用的结果，通过output发送
 
-    std::weak_ptr<AbstractSlot<TcpConnection>> m_weak_slot; //一个tcp连接抽象槽，目的是为了实现时间轮，共享指针引用计数
+    std::weak_ptr<AbstractSlot<TcpConnection>> m_weak_slot; //一个tcp连接抽象槽，目的是为了实现时间轮，共享指针引用计数，每次有新连接就升级成shard_ptr加入槽
 
     RWMutex m_mutex;
 

@@ -97,6 +97,22 @@ void TcpConnection::setUpServer()
 // 注册到时间轮，处理长时间的无效链接
 void TcpConnection::registerToTimeWheel()
 {
+    // 注册到时间轮就是将连接本身通过fresh插入到最后一个槽的vector中
+    // 并且保存一个weak_slot监视指针,为了不增加引用计数，循环引用问题
+    // 如果下次有input被触发，weak_slot.lock()升级一个shard_ptr再新加入槽中，增加一个引用计数
+    // 每次时间间隔到了，pop之后会有一个shard_ptr被删除，引用计数-1，直到这个连接的所有指针被删除，引用计数清零执行析构进行读写关闭
+
+    auto cb = [](TcpConnection::ptr conn)
+    {
+        conn->shutdownConnection(); // 读写关闭，发送四次挥手的第一步FIN
+    };
+
+    // 添加抽象槽到时间轮中
+    TcpTimeWheel::TcpConnectionSlot::ptr tmp = std::make_shared<AbstractSlot<TcpConnection>>(shared_from_this(), cb);
+    // 添加监视
+    m_weak_slot = tmp;
+    // 插入到最后一个槽
+    m_tcp_svr->freshTcpConnection(tmp);
 }
 
 // 做三件事，读，处理rpc，发
