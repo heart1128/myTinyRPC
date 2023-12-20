@@ -48,6 +48,7 @@ void tinyrpc::TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescrip
     DebugLog << "call service_name = " << pb_struct.service_full_name;
 
     // 序列化客户端要发送的包
+    // 内容就是proto定义的request的请求函数字段，就是要调用那个message，然后服务器处理填充这些字段进行返回
     if(!request->SerializeToString(&pb_struct.pb_data))
     {
         ErrorLog << "serialize send package error";
@@ -78,7 +79,7 @@ void tinyrpc::TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescrip
 
     // requset的序列化消息进行编码成字节流
     AbstractCodeC::ptr m_codec = m_client->getConnection()->getCodec();
-    m_codec->encode(m_client->getConnection()->getOutBuffer(), &pb_struct);
+    m_codec->encode(m_client->getConnection()->getOutBuffer(), &pb_struct); // 编码发送请求，也就是编码到m_write_buffer中
     // 结构体自带一个判断编码成功的标志
     if(!pb_struct.encode_succ)
     {
@@ -94,9 +95,9 @@ void tinyrpc::TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescrip
 
 
     /////////////////////
-    // 创建response数据结构体
+    // 创建response数据结构体，这个结构体不是要发送的数据，是接收服务端发送的数据，所以称为response
     TinyPbStruct::pb_ptr res_data;
-    int rt = m_client->sendAndRecvTinyPb(pb_struct.msg_req, res_data); // 发送远程调用，接收回复的包
+    int rt = m_client->sendAndRecvTinyPb(pb_struct.msg_req, res_data); // 发送远程调用，接收回复的包，res_data就是接受了回复包的信息
     if (rt != 0) 
     {
         rpc_controller->SetError(rt, m_client->getErrInfo());
@@ -105,7 +106,7 @@ void tinyrpc::TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescrip
         return;
     }
 
-    // 拿到回复的数据包，进行字符串->proto的反序列化解析
+    // 拿到回复的数据包，进行字符串->proto的反序列化解析，保存到response中
     if(!response->ParseFromString(res_data->pb_data))
     {
         rpc_controller->SetError(ERROR_FAILED_DESERIALIZE, "failed to deserialize data from server");

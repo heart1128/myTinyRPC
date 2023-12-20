@@ -5,12 +5,13 @@
 #include <semaphore.h>
 #include "src/net/reactor.h"
 #include "src/net/tcp/io_thread.h"
-//#include "src/net/tcp/tcp_connection.h"
+#include "src/net/tcp/tcp_connection.h"
 #include "src/net/tcp/tcp_server.h"
 #include "src/net/tcp/tcp_connection_time_wheel.h"
 #include "src/coroutine/coroutine.h"
 #include "src/coroutine/coroutine_pool.h"
 #include "src/comm/config.h"
+#include "io_thread.h"
 
 namespace tinyrpc {
 
@@ -72,7 +73,14 @@ Reactor* IOThread::getReactor()
   return m_reactor;
 }
 
-pthread_t IOThread::getPthreadId() 
+void IOThread::addClient(TcpConnection *tcp_conn)
+{
+  // 首先注册客户端连接到时间轮
+  // 然后启动连接服务端
+  tcp_conn->registerToTimeWheel();
+  tcp_conn->setUpServer();
+}
+pthread_t IOThread::getPthreadId()
 {
   return m_thread;
 }
@@ -105,12 +113,12 @@ void* IOThread::main(void* arg)
     DebugLog << "finish iothread init, now post semaphore";
     sem_post(&thread->m_init_semaphore);  // 初始化完成
 
-    sem_wait(&thread->m_start_semaphore);  // 等待pool的start唤醒信号量 
+    sem_wait(&thread->m_start_semaphore);  // 等待pool的start唤醒信号量 ,在io_thread_pool中的start() 唤醒全部线程的start信号量，执行reactor->loop
 
     sem_destroy(&thread->m_start_semaphore);
 
     DebugLog << "IOThread " << thread->m_tid << " begin to loop"; // 唤醒之后执行Loop
-    t_reactor_ptr->loop();
+    t_reactor_ptr->loop();  // 子协程的reactor循环开始，由主协程也就是server唤醒client的reactor
 
     return nullptr;
 }
@@ -135,7 +143,7 @@ IOThreadPool::IOThreadPool(int size)
     }
 }
 
-// 唤醒start信号量，执行reactor->loop
+// 唤醒start信号量，执行reactor->loop， 函数在trc_server的start函数中调用
 void IOThreadPool::start()
 {
     for(int i = 0; i < m_size; ++i)

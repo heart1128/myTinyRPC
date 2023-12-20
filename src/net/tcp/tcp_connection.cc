@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include "src/net/tcp/tcp_connection.h"
 #include "src/net/tcp/tcp_server.h"
-// #include "src/net/tcp/tcp_client.h"
+#include "src/net/tcp/tcp_client.h"
 #include "src/net/tinypb/tinypb_codec.h"
 #include "src/net/tinypb/tinypb_data.h"
 #include "src/coroutine/coroutine_hook.h"
@@ -16,7 +16,7 @@
 
 namespace tinyrpc{
 
-// 服务端初始化tcp连接
+// 服务端初始化tcp连接，需要创建一个新的Reactor，从线程池中拿出来的
 tinyrpc::TcpConnection::TcpConnection(tinyrpc::TcpServer *tcp_svr, tinyrpc::IOThread *io_thread, int fd, int buff_size, NetAddress::ptr peer_addr)
 :m_io_thread(io_thread), m_fd(fd), m_state(Connected), m_connection_type(ServerConnection), m_peer_addr(peer_addr)
 {
@@ -47,7 +47,8 @@ TcpConnection::TcpConnection(tinyrpc::TcpClient *tcp_cli, tinyrpc::Reactor *reac
 {
     m_reactor = reactor;
     m_tcp_cli = tcp_cli;
-    //
+    //客户端编码方式获取
+    m_codec = m_tcp_cli->getCodeC();
 
     m_fd_event = FdEventContainer::getFdContainer()->getFdEvent(fd);
     m_fd_event->setReactor(m_reactor);
@@ -111,7 +112,7 @@ void TcpConnection::registerToTimeWheel()
     TcpTimeWheel::TcpConnectionSlot::ptr tmp = std::make_shared<AbstractSlot<TcpConnection>>(shared_from_this(), cb);
     // 添加监视
     m_weak_slot = tmp;
-    // 插入到最后一个槽
+    // 插入到最后一个槽，conn本身没有设置时间轮，通过服务端的时间轮添加，所以管理时间轮的是服务端
     m_tcp_svr->freshTcpConnection(tmp);
 }
 
@@ -230,8 +231,40 @@ void TcpConnection::input()
 }
 
 // rpc内容解码
+// 分为两种解码方式，也分为服务端和客户端
 void TcpConnection::execute()
 {
+    // 1. 有内容读才进行解析
+    while(m_read_buffer->readAble() > 0)
+    {
+        std::shared_ptr<AbstractData> data;
+        // 2. 判断解码类型
+        if(m_codec->getProtocalType() == TinyPb_Protocal)
+            data = std::make_shared<TinyPbStruct>();
+        else
+            // http请求体
+        
+        // 3. 解码
+        m_codec->decode(m_read_buffer.get(), data.get());
+        if(!data->decode_succ)
+        {
+            ErrorLog << "it parse request error of fd " << m_fd;
+            break;
+        }
+
+        // 4. 判断客户端和服务端
+        if(m_connection_type == ServerConnection)
+        {
+            m_tcp_svr->getDispatcher()->dispatcher(data.get(), this); // 分发处理客户端请求，使用本conn发送出去
+        }
+        else if(m_connection_type == ClientConnection)
+        {
+            std::shared_ptr<TinyPbStruct> tmp = std::dynamic_pointer_cast<TinyPbStruct>(data); // 客户端连接，这部分就是input()读取到了回复，保存在map中
+            if(tmp)
+                m_reply_datas[tmp->msg_req] = tmp;
+        }
+
+    }
 }
 // 发送rpc内容
 void TcpConnection::output()

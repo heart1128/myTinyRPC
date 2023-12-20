@@ -48,8 +48,8 @@ private:
     int m_family {-1};
     int m_fd {-1};
 
-    NetAddress::ptr m_local_addr {nullptr};
-    NetAddress::ptr m_peer_addr {nullptr};
+    NetAddress::ptr m_local_addr {nullptr};  // 本机地址
+    NetAddress::ptr m_peer_addr {nullptr};  // 网络上的地址，连接之后对方的地址
 };
 
 // 处理TCP服务，分为主协程：不断执行Reactor的loop函数运行epoll_wait直到listenfd可读
@@ -70,14 +70,25 @@ public:
 
     bool registerService(std::shared_ptr<google::protobuf::Service> service);
 
-    // bool registerHttpServlet(const std::string& url_path, HttpServlet::ptr servlet);
+    // bool registerHttpServlet(const std::string& url_path, HttpServlet::ptr servlet);  // http协议不是rpc
 
     void freshTcpConnection(TcpTimeWheel::TcpConnectionSlot::ptr slot);
+
+    // 连接之后添加客户端
+    TcpConnection::ptr addClient(IOThread* io_thread, int fd);
 
 public:
     AbstractCodeC::ptr getCodec();
 
     TcpTimeWheel::ptr getTimeWheel(); 
+
+    NetAddress::ptr getPeerAddr();
+
+    NetAddress::ptr getLocalAddr();
+
+    IOThreadPool::ptr getIOThreadPool();
+
+    AbstractDispatcher::ptr getDispatcher();
 
 private:
     void mainAcceptCorFunc();
@@ -99,8 +110,6 @@ private:
 
     IOThreadPool::ptr m_io_pool;  // 线程池，一个线程对应一个连接，一个线程对应多个协程
 
-    TimerEvent::ptr m_clear_clent_timer_event {nullptr}; // 一个客户端不能长时间占用连接，定时处理
-
     TcpTimeWheel::ptr m_time_wheel; // 处理无线连接时间轮
 
     AbstractCodeC::ptr m_codec; // tinyPB
@@ -108,6 +117,10 @@ private:
     AbstractDispatcher::ptr m_dispatcher; // 事件分发器
 
     ProtocalType m_protocal_type {TinyPb_Protocal}; // 实现了两种协议，http和tinypb
+
+    TimerEvent::ptr m_clear_clent_timer_event {nullptr}; // 一个客户端不能长时间占用连接，定时处理
+
+    std::map<int , std::shared_ptr<TcpConnection>> m_clients; // 客户端连接存储
 
 };
 

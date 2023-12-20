@@ -7,7 +7,7 @@
 #include <functional>
 #include <semaphore.h>
 #include "src/net/reactor.h"
-// #include "src/net/tcp/tcp_connection_time_wheel.h"
+#include "src/net/tcp/tcp_connection_time_wheel.h"
 #include "src/coroutine/coroutine.h"
 
 namespace tinyrpc {
@@ -27,7 +27,7 @@ public:
 
     Reactor* getReactor();
 
-    // void addClient(TcpConnection* tcp_conn);
+    void addClient(TcpConnection* tcp_conn);
 
     pthread_t getPthreadId();
 
@@ -44,10 +44,10 @@ private:
     static void* main(void* arg);
 
 private:
-    Reactor* m_reactor {nullptr};
+    Reactor* m_reactor {nullptr};  // 每个线程都管理一个reactor
     pthread_t m_thread {0};
     pid_t m_tid {-1};
-    // TimerEvent::ptr m_timer_event {nullptr};
+    TimerEvent::ptr m_timer_event {nullptr};
 
     int m_index {-1};
 

@@ -73,7 +73,8 @@ public:
     TcpConnectionState getState();
     // 设置
     void setState(const TcpConnectionState& state);
-    // tcp不能一次性传完数据，需要缓冲区保存，IO缓冲区
+    // 读写缓冲区，服务端的读缓冲区保存客户端远程调用，写缓冲区保存远程调用的结果
+    // 客户端读缓冲区保存远程调用的结果，写缓冲区保存远程调用的请求
     TcpBuffer* getInBuffer();
     TcpBuffer* getOutBuffer();
 
@@ -119,8 +120,8 @@ private:
 
     NetAddress::ptr m_peer_addr;
 
-    TcpBuffer::ptr m_read_buffer;
-	TcpBuffer::ptr m_write_buffer;
+    TcpBuffer::ptr m_read_buffer;  // read_buf是从网络上读取m_write_buffer发送的数据存到里面
+	TcpBuffer::ptr m_write_buffer;  // 是吧m_write_buffer的数据发送到网络流中，所以需要发送什么就把东西写入buffer中，encoder就是吧东西编码到buf中
 
     Coroutine::ptr m_loop_cor;
 

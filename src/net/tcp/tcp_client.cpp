@@ -153,7 +153,7 @@ int TcpClient::sendAndRecvTinyPb(const std::string &msg_no, TinyPbStruct::pb_ptr
     // 已连接，进行设置
         // 已连接状态设置
     m_connection->setUpClient();
-    m_connection->output();    ///  !!!!!! 这是客户端，是先进行发送的，发送远程调用
+    m_connection->output();    ///  !!!!!! 这是客户端，是先进行发送的，发送远程调用，是在chaannel->CallMethod中，先对请求信息编码到m_writer_buffer中，这里对这个buffer进行发送远程调用
         // 发送超时
     if (m_connection->getOverTimerFlag()) 
     {
@@ -162,10 +162,10 @@ int TcpClient::sendAndRecvTinyPb(const std::string &msg_no, TinyPbStruct::pb_ptr
         goto err_deal;
     }
 
-    while(!m_connection->getResPackageData(msg_no, res))  // 没有获取到服务端返回的调用内容，进行读取远程调用编码给服务器
+    while(!m_connection->getResPackageData(msg_no, res))  // 没有获取到服务端返回的调用内容，进行读取远程调用编码给服务器,回复包信息是在execture这步保存的，上面调用了就能得到返回的数据
     {
         DebugLog << "redo getResPackageData";
-        m_connection->input();
+        m_connection->input();  // 如果服务端没有执行，input只有服务端才使用，就调用input把刚才的output发送的进行读取，算是手动调用服务端进行处理
 
         if(m_connection->getOverTimerFlag())
         {

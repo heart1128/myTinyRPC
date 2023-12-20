@@ -506,6 +506,11 @@ pid_t Reactor::getTid()
   return m_tid;
 }
 
+void Reactor::setReactorType(ReactorType type)
+{
+    m_reactor_type = type;
+}
+
 /*
 ------------------------CoroutineTaskQueue----------------------
 */

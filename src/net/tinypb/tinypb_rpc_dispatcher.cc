@@ -5,8 +5,8 @@
 
 #include "src/net/net_address.h"
 #include "src/comm/error_code.h"    // rpc框架错误代码
-// #include "src/net/tcp/tcp_client.h"
-// #include "src/net/tinypb/tinypb_rpc_channel.h"    // rpc通道，实现callmethod, 继承google::protobuf::RpcChannel
+#include "src/net/tcp/tcp_client.h"
+#include "src/net/tinypb/tinypb_rpc_channel.h"    // rpc通道，实现callmethod, 继承google::protobuf::RpcChannel
 #include "src/net/tinypb/tinypb_rpc_controller.h"  // 定义rpcService error继承google::protobuf::RpcController
 #include "src/net/tinypb/tinypb_rpc_closure.h"
 #include "src/net/tinypb/tinypb_codec.h"
@@ -21,6 +21,7 @@ namespace tinyrpc {
 
 class TcpBuffer;
 
+// 只有服务端才分发任务，data是客户端发送的远程调用请求
 void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
 {
     
@@ -137,6 +138,9 @@ void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
 
     // 8. 调用service->CallMethod方法，这个方法调用子类的，需要重载RpcChannel的CallMethod方法
         // 作用就是将requset的请求内容执行，然后返回信息放到response中
+        // 这个service是继承了QueryService的子类QueryServiceIml，但是没有重载CallMethod
+        // 所以这里调用的是QueryService的CallMethod,里面实现的是通过method的序号判断使用哪个函数
+        // 之后调用这个函数，而这个函数是子类重载了的，所以调用子类的函数，达到目的
     service->CallMethod(method, &rpc_controller, request, response, &closure);
     InfoLog << "Call [" << reply_pk.service_full_name << "] succ, now send reply package";
 
@@ -159,7 +163,7 @@ void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
     // 结束删除反射的实例
     delete request;
     delete response;
-
+    
     // 进行最后的tcp发送
     conn->getCodec()->encode(conn->getOutBuffer(), dynamic_cast<AbstractData*>(&reply_pk));
 
