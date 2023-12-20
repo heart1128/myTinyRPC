@@ -2,6 +2,10 @@
 #define SRC_COMM_CONFIG_H
 
 #include <tinyxml/tinyxml.h> // 自己添加到/usr/lib的tinyxml库
+#include <memory>
+#include <map>
+#include <string>
+
 
 namespace tinyrpc{
 
@@ -18,6 +22,17 @@ enum LogLevel{
 class Config{
 public:
     typedef std::shared_ptr<Config> ptr;
+
+public:
+    Config(const char* file_path); // 这里他使用xml作为启动配置文件
+    ~Config();
+
+    void readConf(); // 读取xml配置文件
+    void readDBConfig(TiXmlElement* node);  // 好像这里写了使用数据库的代码，但是实际没有使用
+
+    void readLogConfig(TiXmlElement* node);
+
+    TiXmlElement* getXmlNode(const std::string& name);
 
 public:
     // log params
