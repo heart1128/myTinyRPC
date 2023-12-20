@@ -5,9 +5,13 @@
 #include "src/net/tcp/tcp_server.h"
 #include "src/coroutine/coroutine_hook.h"
 
-
-
+namespace tinyrpc {
+    
 void tinyrpc::initConfig(const char *file)
 {
 
 }
+    
+} // namespace tinyrpc
+
+
