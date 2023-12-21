@@ -21,7 +21,7 @@ public:
     TinyPbRpcDispacther() = default;
     ~TinyPbRpcDispacther() = default;
 
-    void dispatch(AbstractData* data, TcpConnection* conn);  // 事件分发
+    void dispatcher(AbstractData* data, TcpConnection* conn);  // 事件分发
 
     bool parseServiceFullName(const std::string& full_name, std::string& service_name, std::string& method_name);  // 解析服务名和方法
 

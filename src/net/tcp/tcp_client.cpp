@@ -43,7 +43,8 @@ TcpClient::TcpClient(NetAddress::ptr addr, ProtocalType type)
     }
     else
     {
-        m_codec = std::shared_ptr<TinyPbCodeC>();
+       // m_codec = std::shared_ptr<TinyPbCodeC>();  // 挑出一个bug，make_shared写成了shared_ptr
+       m_codec = std::make_shared<TinyPbCodeC>();
     }
 
 

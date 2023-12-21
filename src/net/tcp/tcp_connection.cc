@@ -364,10 +364,6 @@ void TcpConnection::shutdownConnection()
     shutdown(m_fd_event->getFd(), SHUT_RDWR);
 }
 
-TcpConnectionState TcpConnection::getState()
-{
-    return m_state;
-}
 
 TcpBuffer* TcpConnection::getInBuffer() 
 {

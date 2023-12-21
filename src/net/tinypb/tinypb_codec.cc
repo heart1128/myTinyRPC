@@ -12,6 +12,7 @@
 #include "src/net/tinypb/tinypb_data.h"
 #include "tinypb_codec.h"
 #include "src/comm/msg_req.h"
+#include <iostream>
 
 namespace tinyrpc{
 
@@ -36,9 +37,10 @@ void TinyPbCodeC::encode(TcpBuffer *buf, AbstractData *data)
         ErrorLog << "encode error! buf or data nullptr";
         return;
     }
-
+    
     // 动态转换为子类，父类到子类的转换才会触发动态检查机制
     TinyPbStruct* tmp = dynamic_cast<TinyPbStruct*>(data);
+    
 
     int len = 0;
     const char* re = encodePbData(tmp, len);
@@ -74,7 +76,7 @@ const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
     {
         ErrorLog << "parse error, service_full_name is empty!";
         data->encode_succ = false;
-        return;
+        return nullptr;
     }
 
     // 2.请求或者回应消息体为空，生成随机序列填补，可以没有请求消息 

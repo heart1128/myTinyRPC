@@ -18,12 +18,12 @@
 namespace tinyrpc{
 
 
-tinyrpc::TinyPbRpcChannel::TinyPbRpcChannel(NetAddress::ptr addr)
+TinyPbRpcChannel::TinyPbRpcChannel(NetAddress::ptr addr)
 : m_addr(addr)
 {
 }
 
-void tinyrpc::TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method, 
+void TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor *method, 
                 google::protobuf::RpcController *controller, 
                 const google::protobuf::Message *request, 
                 google::protobuf::Message *response, 

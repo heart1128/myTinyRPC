@@ -24,7 +24,6 @@ public:
     // 拿到解码的数据，然后产生respone，进行conn的output()传输出去
     virtual void dispatcher(AbstractData* data, TcpConnection* conn) = 0;
 
-
 };
     
 } // namespace tinyrp

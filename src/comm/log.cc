@@ -16,8 +16,8 @@
 
 namespace tinyrpc{
 
-tinyrpc::Logger::ptr gRpcLogger;
-tinyrpc::Config::ptr gRpcConfig;
+extern tinyrpc::Logger::ptr gRpcLogger;
+extern tinyrpc::Config::ptr gRpcConfig;
 
 // coredump处理函数
 void CoredumpHandler(int signal_no)

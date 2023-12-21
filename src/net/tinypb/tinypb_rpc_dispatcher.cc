@@ -22,7 +22,7 @@ namespace tinyrpc {
 class TcpBuffer;
 
 // 只有服务端才分发任务，data是客户端发送的远程调用请求
-void TinyPbRpcDispacther::dispatch(AbstractData *data, TcpConnection *conn)
+void TinyPbRpcDispacther::dispatcher(AbstractData *data, TcpConnection *conn)
 {
     
     TinyPbStruct* tmp = dynamic_cast<TinyPbStruct*>(data);
@@ -178,7 +178,7 @@ bool TinyPbRpcDispacther::parseServiceFullName(const std::string &full_name, std
     } 
     //全名的格式是 service_name.method_name
     // 所以使用find找出.进行sub_str拿出来就行
-    int idx = full_name.find('.');
+    long unsigned int idx = full_name.find('.');
     if(idx == full_name.npos)
     {
         ErrorLog << "service_full_name parse error! Not char '.'！";

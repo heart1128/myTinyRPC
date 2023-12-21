@@ -42,7 +42,7 @@ set(tinyxml /usr/lib/libtinyxml.a) # cmake没有自带的搜索tinyxml，自己�
 ############ 设置所有libs变量
 set(LIBS
     myTinyRpc
-    ${Protobuf_LIBPARY}
+    ${Protobuf_LIBRARY}
     ${tinyxml}
     dl          # hook用
     pthread
@@ -54,6 +54,9 @@ set(
     ${PROJECT_SOURCE_DIR}/${PATH_TESTCASES}/test_tinypb_server.cc
     ${PROJECT_SOURCE_DIR}/${PATH_TESTCASES}/test_tinypb_server.pb.cc
 )
+add_executable(test_tinypb_server ${test_tinypb_server})
+target_link_libraries(test_tinypb_server ${LIBS}) # 显式指定静态链接库
+install(TARGETS test_tinypb_server DESTINATION ${PATH_BIN}) # 可执行文件
 
 # test_tinypb_server_client
 set(
@@ -61,13 +64,15 @@ set(
     ${PROJECT_SOURCE_DIR}/${PATH_TESTCASES}/test_tinypb_server_client.cc
     ${PROJECT_SOURCE_DIR}/${PATH_TESTCASES}/test_tinypb_server.pb.cc
 )
+add_executable(test_tinypb_server_client ${test_tinypb_server_client})
+target_link_libraries(test_tinypb_server_client ${LIBS}) # 显式指定静态链接库
+install(TARGETS test_tinypb_server_client DESTINATION ${PATH_BIN}) # 可执行文件
 
 # test_coroutine
 set(
     test_coroutine
     ${PROJECT_SOURCE_DIR}/${PATH_TESTCASES}/test_coroutine.cc
 )
-
 add_executable(test_coroutine ${test_coroutine})
 target_link_libraries(test_coroutine ${LIBS}) # 显式指定静态链接库
 install(TARGETS test_coroutine DESTINATION ${PATH_BIN}) # 可执行文件

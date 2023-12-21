@@ -24,28 +24,28 @@ void initConfig(const char *file)
     }
 }
 
-TcpServer::ptr GetServer() 
+TcpServer::ptr getServer() 
 {
     return gRpcServer;
 }
 
-void StartRpcServer() 
+void startRpcServer() 
 {
     gRpcLogger->start();
     gRpcServer->start();
 }
 
-int GetIOThreadPoolSize() 
+int getIOThreadPoolSize() 
 {
     return gRpcServer->getIOThreadPool()->getIOThreadPoolSize();
 }
 
-Config::ptr GetConfig() 
+Config::ptr getConfig() 
 {
     return gRpcConfig;
 }
 
-void AddTimerEvent(TimerEvent::ptr event) 
+void addTimerEvent(TimerEvent::ptr event) 
 {
 
 }
