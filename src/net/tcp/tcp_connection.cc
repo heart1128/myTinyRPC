@@ -167,6 +167,7 @@ void TcpConnection::input()
         // 2. 使用read_hook，尝试读一遍，读不完就进行协程yield()
         int rt = read_hook(m_fd, &(m_read_buffer->m_buffer[write_index]), read_count);
             // 有数据返回，将缓冲区调整一下，利用没有用的空间
+        // std::cout << "input::read = " << rt << std::endl; 可以读取
         if(rt > 0)
         {
             m_read_buffer->recucleWrite(rt);
@@ -182,7 +183,7 @@ void TcpConnection::input()
         }
 
             // read出错
-        if(rt < 0)
+        if(rt <= 0)
         {
             DebugLog << "rt <= 0";
             ErrorLog << "read empty while occur read event, because of peer close, fd= " << m_fd << ", sys error=" << strerror(errno) << ", now to clear tcp connection";
@@ -226,7 +227,12 @@ void TcpConnection::input()
 
     if(m_connection_type == ServerConnection)
     {
-        // 刷新时间轮
+        // 刷新时间轮，也就是给链接添加一个新的时间
+        TcpTimeWheel::TcpConnectionSlot::ptr tmp = m_weak_slot.lock(); // 升级成shard_ptr
+        if(tmp)
+        {
+            m_tcp_svr->freshTcpConnection(tmp);
+        }
     }
 }
 
@@ -242,7 +248,10 @@ void TcpConnection::execute()
         if(m_codec->getProtocalType() == TinyPb_Protocal)
             data = std::make_shared<TinyPbStruct>();
         else
+        {
             // http请求体
+        }
+            
         
         // 3. 解码
         m_codec->decode(m_read_buffer.get(), data.get());

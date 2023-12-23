@@ -131,7 +131,7 @@ ssize_t read_hook(int fd, void* buf, size_t count)
 
     /*
         读一次，如果直接读完了就不用注册读事件进行循环等待了
-        如果现在没有可读的数据，说明这个sockfd读事件还没有准备就绪，需要注册READ事件到epoll等待触发协程
+        如果现在没有可读p的数据，说明这个sockfd读事件还没有准备就绪，需要注册READ事件到epoll等待触发协程
     */
     ssize_t n = g_sys_read_fun(fd, buf, count);
     if(n > 0)

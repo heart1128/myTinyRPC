@@ -80,6 +80,7 @@ void TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor *meth
     // requset的序列化消息进行编码成字节流
     AbstractCodeC::ptr m_codec = m_client->getConnection()->getCodec();
     m_codec->encode(m_client->getConnection()->getOutBuffer(), &pb_struct); // 编码发送请求，也就是编码到m_write_buffer中
+
     // 结构体自带一个判断编码成功的标志
     if(!pb_struct.encode_succ)
     {
@@ -130,6 +131,7 @@ void TinyPbRpcChannel::CallMethod(const google::protobuf::MethodDescriptor *meth
     // 执行最后的回调函数
     if(done)
         done->Run();
+
 }
 
     

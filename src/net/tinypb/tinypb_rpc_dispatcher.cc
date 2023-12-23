@@ -17,7 +17,7 @@
 #include "tinypb_rpc_dispatcher.h"
 
 
-namespace tinyrpc { 
+namespace tinyrpc {
 
 class TcpBuffer;
 

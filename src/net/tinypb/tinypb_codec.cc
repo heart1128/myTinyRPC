@@ -54,7 +54,7 @@ void TinyPbCodeC::encode(TcpBuffer *buf, AbstractData *data)
     }
     // 2. 编码成功
     DebugLog << "encode package len = " << len;
-    if(re != nullptr)
+    if(buf != nullptr)
     {
         buf->writeToBuffer(re, len); // 编码成功加入到需要发送也就是写buffer
         DebugLog << "succ encode and write to buffer, writeindex=" << buf->writeIndex();
@@ -91,7 +91,7 @@ const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
         //3.1 总协议报文包长度,其中两个char是开头和结尾的两个字符长度
     int32_t pk_len = 2 * sizeof(char) + 6 * sizeof(int32_t)
                     + data->pb_data.length() + data->service_full_name.length()
-                    + data->err_info.length() + data->pb_data.length();
+                    + data->err_info.length() + data->msg_req.length();
 
     DebugLog << "encoder package len = " << pk_len;
         // 3.2 使用一个tmp字节指针指向buf，字节复制
@@ -112,7 +112,7 @@ const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
     tmp += sizeof(int32_t);
     if(msg_req_len != 0) // 有消息才写入
     {
-        memcpy(tmp, &data->msg_req[0], msg_req_len);
+        memcpy(tmp, &(data->msg_req[0]), msg_req_len);
         tmp += msg_req_len;
     }
         // 3.6 加入完整服务名
@@ -123,11 +123,13 @@ const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
     tmp += sizeof(int32_t);
     if(service_full_name_len != 0)
     {
-        memcpy(tmp, &data->service_full_name[0], service_full_name_len);
+        memcpy(tmp, &(data->service_full_name[0]), service_full_name_len);
         tmp += service_full_name_len;
     }
         //3.7 加入框架级错误代码
-    int32_t err_code_net = htonl(data->err_code);
+    int32_t err_code = data->err_code;
+    DebugLog << "err_code= " << err_code;
+    int32_t err_code_net = htonl(err_code);
     memcpy(tmp, &err_code_net, sizeof(int32_t));
     tmp += sizeof(int32_t);
 
@@ -139,14 +141,14 @@ const char *TinyPbCodeC::encodePbData(TinyPbStruct *data, int &len)
     tmp += sizeof(int32_t);
     if(err_info_len != 0)
     {
-        memcpy(tmp, &data->err_info[0], err_info_len);
+        memcpy(tmp, &(data->err_info[0]), err_info_len);
         tmp+= err_info_len;
     }
 
         // 3.9 加入pb_data
     int32_t pb_data_len = data->pb_data.length();
     DebugLog << "pb_data_len = " << pb_data_len;
-    memcpy(tmp, &data->pb_data[0], pb_data_len);
+    memcpy(tmp, &(data->pb_data[0]), pb_data_len);
     tmp += pb_data_len;
 
         //3.10 加入检验和，这里只是考虑了检验和，没有实现
@@ -199,7 +201,7 @@ void TinyPbCodeC::decode(TcpBuffer *buf, AbstractData *data)
     bool parse_full_pack = false;
 
     // 检查开头标志和结尾标志，没有开头标志，或者有开头没结尾的缓冲区溢出问题
-    for(int i = 0; i < buf->writeIndex(); ++i)
+    for(int i = start_index; i < buf->writeIndex(); ++i)
     {
         // 开头标志
         if(tmp[i] == PB_START)

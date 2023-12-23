@@ -103,6 +103,7 @@ public:
 
     void initServer();
 
+
 private:
     void clearClient();
 
@@ -113,7 +114,7 @@ private:
     IOThread* m_io_thread {nullptr};
     Reactor* m_reactor {nullptr};
 
-    int m_fd {-1}; // 连接fd
+    int m_fd {-1};
 
     TcpConnectionState m_state {TcpConnectionState::Connected};
     ConnectionType m_connection_type {ServerConnection};

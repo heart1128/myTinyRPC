@@ -155,6 +155,8 @@ int TcpClient::sendAndRecvTinyPb(const std::string &msg_no, TinyPbStruct::pb_ptr
         // 已连接状态设置
     m_connection->setUpClient();
     m_connection->output();    ///  !!!!!! 这是客户端，是先进行发送的，发送远程调用，是在chaannel->CallMethod中，先对请求信息编码到m_writer_buffer中，这里对这个buffer进行发送远程调用
+    
+
         // 发送超时
     if (m_connection->getOverTimerFlag()) 
     {

@@ -155,7 +155,7 @@ void Reactor::delEventInLoopThread(int fd)
     assert(isLoopThread());
 
     auto it = find(m_fds.begin(), m_fds.end(), fd);
-    if(it != m_fds.end()) // 这个删除的fd不是这个线程的
+    if(it == m_fds.end()) // 这个删除的fd不是这个线程的
     {
         DebugLog << "fd[" << fd << "] not in this loop";
 		return;
