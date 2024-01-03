@@ -53,7 +53,7 @@ public:
     // 设置回调函数，设置类型
     void setCallBack(IOEvent flag, std::function<void()> cb);
     std::function<void()> getCallBack(IOEvent flag) const;
-    // 添加监听时间  read or write
+    // 添加监听事件  read or write
     void addListenEvents(IOEvent event);
     void delListenEvents(IOEvent event);
     // 设置fd和事件到reactor的epoll中

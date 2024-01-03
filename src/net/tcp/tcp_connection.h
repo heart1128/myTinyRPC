@@ -73,7 +73,8 @@ public:
     TcpConnectionState getState();
     // 设置
     void setState(const TcpConnectionState& state);
-    // 读写缓冲区，服务端的读缓冲区保存客户端远程调用，写缓冲区保存远程调用的结果
+    // 读写缓冲区，服务端的读缓冲区保存
+    // 客户端远程调用，写缓冲区保存远程调用的结果
     // 客户端读缓冲区保存远程调用的结果，写缓冲区保存远程调用的请求
     TcpBuffer* getInBuffer();
     TcpBuffer* getOutBuffer();

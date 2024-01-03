@@ -12,7 +12,7 @@
 #include "src/comm/log.h"
 #include "src/comm/config.h"
 #include "src/coroutine/coroutine.h"
-#include "src/comm/run_time.h"
+#include "src/net/timer.h"
 
 namespace tinyrpc{
 
@@ -298,6 +298,10 @@ void Logger::init(const char* file_name, const char* file_path, int max_size, in
 void Logger::start()
 {
     // 框架搭建好进行启动
+    // 启动就是将循环loopFunc()函数添加到定时器中，设置一个定时间隔，不断启动
+    // 设置重复定时，每隔一段时间就会把存的日志加入待写队列中。
+    TimerEvent::ptr event = std::make_shared<TimerEvent>(m_sync_inteval, true, std::bind(&Logger::loopFunc, this));
+    Reactor::getReactor()->getTimer()->addTimerEvent(event);
 }
 
 
@@ -533,7 +537,7 @@ void AsyncLogger::push(std::vector<std::string>& buffer)
         // 唤醒等待的条件变量，也就是执行函数里面的等待的条件变量。
         pthread_cond_signal(&m_condition);
     }
-}
+} 
 
 // 刷新文件指针
 void AsyncLogger::flush()
@@ -558,6 +562,8 @@ void Exit(int code)
     printf("It's sorry to said we start TinyRPC server error, look up log file to get more deatils!\n");
     gRpcLogger->flush();
     pthread_join(gRpcLogger->getAsyncLogger()->m_thread, NULL);
+
+    _exit(code);
 }
 
 };
