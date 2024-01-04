@@ -8,7 +8,7 @@ namespace tinyrpc{
 class AbstractData{
 public:
     AbstractData() = default;
-    virtual ~AbstractData() {};
+    virtual ~AbstractData() {}
 
 public:
     bool decode_succ {false};
